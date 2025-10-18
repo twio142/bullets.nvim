@@ -1,12 +1,13 @@
 # Bullets.nvim
 
-A lua port of [bullets.vim](https://github.com/dkarter/bullets.vim)
+A lua port of [bullets.vim](https://github.com/bullets-vim/bullets.vim)
 
 ## Setup
 
-* Include the plugin using your plugin manager of choice.
-* config is a table containing your chosen options (see the code for available options; no helpfile provided at this time).
-* Include in your init.lua ```require('Bullets').setup({ config })``` **or** for Lazy:
+- Include the plugin using your plugin manager of choice.
+- `config` is a table containing your chosen options (see the code for available options; no help file provided at this time).
+- Include in your `init.lua` `require('Bullets').setup({ config })` **or** for Lazy:
+
 ```lua
 {
   'kaymmm/bullets.nvim',
@@ -34,4 +35,3 @@ A lua port of [bullets.vim](https://github.com/dkarter/bullets.vim)
   }
 }
 ```
-
