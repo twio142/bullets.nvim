@@ -47,8 +47,8 @@ Bullets.config = {
   empty_buffers = true,
   file_types = { 'markdown', 'text', 'gitcommit' },
   line_spacing = 1,
-  mappings = true,
-  outline_levels = {'ROM','ABC', 'num', 'abc', 'rom', 'std*', 'std-', 'std+'},
+  set_mappings = true,
+  outline_levels = {'ROM', 'ABC', 'num', 'abc', 'rom', 'std*', 'std-', 'std+'},
   renumber = true,
   alpha = {
     len = 2,
@@ -71,7 +71,8 @@ H.setup_config = function(config)
   vim.validate('empty_buffers', config.empty_buffers, 'boolean', true)
   vim.validate('file_types', config.file_types, 'table', true)
   vim.validate('line_spacing', config.line_spacing, 'number', true)
-  vim.validate('mappings', config.mappings, 'boolean', true)
+  vim.validate('set_mappings', config.set_mappings, 'boolean', true)
+  vim.validate('custom_mappings', config.custom_mappings, 'table', true)
   vim.validate('outline_levels', config.outline_levels, 'table', true)
   vim.validate('renumber', config.renumber, 'boolean', true)
   vim.validate('alpha', config.alpha, 'table', true)
@@ -84,7 +85,6 @@ H.setup_config = function(config)
 end
 
 H.apply_config = function(config)
-
   local power = config.alpha.len
   config.abc_max = -1
   while power >= 0 do
@@ -108,7 +108,7 @@ H.apply_config = function(config)
     callback = function()
       Bullets.insert_new_bullet('cr')
     end
-    })
+  })
   vim.api.nvim_set_keymap('n', '<Plug>(bullets-newline-o)', ':InsertNewBullet<cr>', {noremap = true, silent = true})
   vim.api.nvim_set_keymap('v', '<Plug>(bullets-renumber)', ':RenumberSelection<cr>', {noremap = true, silent = true})
   vim.api.nvim_set_keymap('n', '<Plug>(bullets-renumber)', ':RenumberList<cr>', {noremap = true, silent = true})
@@ -120,7 +120,7 @@ H.apply_config = function(config)
   vim.api.nvim_set_keymap('n', '<Plug>(bullets-promote)', ':BulletPromote<cr>', {noremap = true, silent = true})
   vim.api.nvim_set_keymap('v', '<Plug>(bullets-promote)', ':BulletPromoteVisual<cr>', {noremap = true, silent = true})
 
-  if config.mappings then
+  if config.set_mappings then
     vim.api.nvim_create_augroup('BulletMaps', {clear = true})
     H.buf_map('imap', '<cr>', '<Plug>(bullets-newline-cr)')
     H.buf_map('nmap', 'o', '<Plug>(bullets-newline-o)')
@@ -133,8 +133,15 @@ H.apply_config = function(config)
     H.buf_map('imap', '<C-d>', '<Plug>(bullets-promote)')
     H.buf_map('nmap', '<<', '<Plug>(bullets-promote)')
     H.buf_map('vmap', '<', '<Plug>(bullets-promote)')
+  elseif config.custom_mappings then
+    vim.api.nvim_create_augroup('BulletMaps', { clear = true })
+    for _, mapping in ipairs(config.custom_mappings) do
+      local mode = mapping[1]
+      local lhs = mapping[2]
+      local rhs = mapping[3]
+      H.buf_map(mode, lhs, rhs)
+    end
   end
-
 end
 
 H.buf_map = function(mode, lhs, rhs)

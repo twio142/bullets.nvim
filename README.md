@@ -16,8 +16,8 @@ A lua port of [bullets.vim](https://github.com/dkarter/bullets.vim)
     empty_buffers = true,
     file_types = { 'markdown', 'text', 'gitcommit' },
     line_spacing = 1,
-    mappings = true,
-    outline_levels = {'ROM','ABC', 'num', 'abc', 'rom', 'std*', 'std-', 'std+'},
+    set_mappings = true,
+    outline_levels = { 'ROM', 'ABC', 'num', 'abc', 'rom', 'std*', 'std-', 'std+' },
     renumber = true,
     alpha = {
       len = 2,
@@ -27,6 +27,10 @@ A lua port of [bullets.vim](https://github.com/dkarter/bullets.vim)
       markers = ' .oOx',
       toggle_partials = true,
     },
+    custom_mappings = { -- only works if set_mappings is false
+      { 'inoremap', '<S-cr>', '<cr>' },
+      { 'nmap', 'o', '<Plug>(bullets-newline-o)' },
+    }
   }
 }
 ```
