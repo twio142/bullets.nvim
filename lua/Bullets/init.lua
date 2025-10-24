@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- bullets.nvim
 -- Author: Keith Miyake
 -- Rewritten from https://github.com/dkarter/bullets.vim
@@ -939,227 +940,52 @@ H.set_checkbox = function(lnum, marker)
 	end
 end
 
-H.cycle_checkbox_marker = function(lnum)
-	-- Toggles the checkbox on line a:lnum.
-	-- Returns the resulting status (1) checked, (0) unchecked, (-1) unchanged
-	local indent = vim.fn.indent(lnum)
-	local bullet = H.closest_bullet_types(lnum, indent)
-	bullet = H.resolve_bullet_type(bullet)
-	local checkbox_content = bullet.checkbox_marker
-	if next(bullet) == nil or bullet["checkbox_marker"] == nil then
-		return -1
+Bullets.cycle_checkbox_marker = function()
+	-- toggle checkbox on the current line, cycle through the pre-defined markers
+	local pattern = "^(%s*[-*] )%[(.)%] "
+	local row = vim.api.nvim_win_get_cursor(0)[1]
+	local line = vim.fn.getline(row)
+	local _, marker = line:match(pattern)
+	if not marker then
+		return
 	end
-
-	local checkbox_markers = Bullets.config.checkbox.markers
-	-- get markers that aren't empty or fully checked
-	local partial_markers = string.sub(checkbox_markers, 2, #checkbox_markers - 1)
-	local marker = string.sub(checkbox_markers, 1, 1)
-	if Bullets.config.checkbox.toggle_partials and string.find(partial_markers, checkbox_content) ~= nil then
-		-- Partially complete
-		if Bullets.config.checkbox.toggle_partials then
-			marker = string.sub(checkbox_markers, -1)
-		end
-	elseif checkbox_content == string.sub(checkbox_markers, 1, 1) then
-		marker = string.sub(checkbox_markers, -1)
-	-- marker = string.sub(checkbox_markers,#checkbox_markers, 1)
-	elseif
-		string.find(checkbox_content, "x") ~= nil
-		or string.find(checkbox_content, "X") ~= nil
-		or string.find(checkbox_content, string.sub(checkbox_markers, -1)) ~= nil
-	then
-		marker = string.sub(checkbox_markers, 1, 1)
+	local idx = Bullets.config.checkbox.markers:find(marker, 1, true)
+	if not idx then
+		marker = " "
 	else
-		return -1
-	end
-
-	H.set_checkbox(lnum, marker)
-	return marker == string.sub(checkbox_markers, #checkbox_markers, 1)
-end
-
-H.get_sibling_line_numbers = function(lnum)
-	-- returns a list with line numbers of the sibling bullets with the same
-	-- indentation as a:indent, starting from the given line number, a:lnum
-	local indent = vim.fn.indent(lnum)
-	local first_sibling = H.first_bullet_line(lnum, indent)
-	local last_sibling = H.last_bullet_line(lnum, indent)
-	local siblings = {}
-	for l = first_sibling, last_sibling do
-		if vim.fn.indent(l) == indent then
-			local bullet = H.parse_bullet(l, vim.fn.getline(l))
-			if next(bullet) ~= nil then
-				table.insert(siblings, l)
-			end
+		idx = idx + 1
+		if idx > #Bullets.config.checkbox.markers then
+			idx = 1
 		end
+		marker = Bullets.config.checkbox.markers:sub(idx, idx)
 	end
-	return siblings
-end
-
-H.get_children_line_numbers = function(line_num)
-	-- returns a list with line numbers of the immediate children bullets with
-	-- indentation greater than line a:lnum
-
-	-- sanity check
-	if line_num < 1 then
-		return {}
-	end
-
-	-- find the first child (if any) so we can figure out the indentation for the
-	-- rest of the children
-	local lnum = line_num + 1
-	local indent = vim.fn.indent(lnum)
-	local buf_end = vim.fn.line("$")
-	local curr_indent = indent(lnum)
-	local bullet_kinds = H.closest_bullet_types(lnum, curr_indent)
-	local child_lnum = 0
-	local blank_lines = 0
-
-	while lnum <= buf_end and child_lnum == 0 do
-		if next(bullet_kinds) ~= nil and curr_indent > indent then
-			child_lnum = lnum
-		else
-			blank_lines = blank_lines + 1
-			if blank_lines >= Bullets.config.line_spacing then
-				child_lnum = -1
-			else
-				child_lnum = 0
-			end
-		end
-		lnum = lnum + 1
-		curr_indent = indent(lnum)
-		bullet_kinds = H.closest_bullet_types(lnum, curr_indent)
-	end
-
-	if child_lnum > 0 then
-		return H.get_sibling_line_numbers(child_lnum)
-	else
-		return {}
-	end
-end
-
-H.sibling_checkbox_status = function(lnum)
-	-- Returns the marker corresponding to the proportion of siblings that are
-	-- completed.
-	local siblings = H.get_sibling_line_numbers(lnum)
-	local num_siblings = #siblings
-	local checked = 0
-	local checkbox_markers = Bullets.config.checkbox.markers
-	for _, l in ipairs(siblings) do
-		local indent = vim.fn.indent(l)
-		local bullet = H.closest_bullet_types(l, indent)
-		bullet = H.resolve_bullet_type(bullet)
-		if next(bullet) ~= nil and bullet.checkbox_marker ~= "" then
-			if string.find(string.sub(checkbox_markers, 2, #checkbox_markers), bullet.checkbox_marker) ~= nil then
-				-- Checked
-				checked = checked + 1
-			end
-		end
-	end
-	local divisions = #checkbox_markers - 1
-	local completion = 1 + math.floor(divisions * checked / num_siblings)
-	return string.sub(checkbox_markers, completion, completion)
-end
-
-H.get_parent = function(lnum)
-	-- returns the parent bullet of the given line number, lnum, with indentation
-	-- at or below the given indent.
-	-- if there is no parent, returns an empty dictionary
-	local indent = vim.fn.indent(lnum)
-	if indent < 0 then
-		return {}
-	end
-	local parent = H.closest_bullet_types(lnum, indent - 1)
-	parent = H.resolve_bullet_type(parent)
-	return parent
-end
-
-H.set_parent_checkboxes = function(lnum, marker)
-	-- set the parent checkbox of line a:lnum, as well as its parents, based on
-	-- the marker passed in a:marker
-	if not Bullets.config.checkbox.nest then
-		return
-	end
-
-	local parent = H.get_parent(lnum)
-	if next(parent) ~= nil and parent.type == "chk" then
-		-- Check for siblings' status
-		local pnum = parent.starting_at_line_num
-		H.set_checkbox(pnum, marker)
-		H.set_parent_checkboxes(pnum, H.sibling_checkbox_status(pnum))
-	end
-end
-
-H.set_child_checkboxes = function(lnum, checked)
-	-- set the children checkboxes of line a:lnum based on the value of a:checked
-	-- 0: unchecked, 1: checked, other: do nothing
-	if not Bullets.config.checkbox.nest or not (checked == 0 or checked == 1) then
-		return
-	end
-
-	local children = H.get_children_line_numbers(lnum)
-	if next(children) ~= nil then
-		local checkbox_markers = Bullets.config.checkbox.markers
-		for child in children do
-			local marker
-			if checked then
-				marker = string.sub(checkbox_markers, vim.str_utfindex(checkbox_markers), 1)
-			else
-				marker = string.sub(checkbox_markers, 1, 1)
-			end
-			H.set_checkbox(child, marker)
-			H.set_child_checkboxes(child, checked)
-		end
-	end
-end
-
-Bullets.toggle_checkboxes_nested = function()
-	-- toggle checkbox on the current line, as well as its parents and children
-	local lnum = vim.fn.line(".")
-	local indent = vim.fn.indent(lnum)
-	local bullet = H.closest_bullet_types(lnum, indent)
-	bullet = H.resolve_bullet_type(bullet)
-
-	-- Is this a checkbox? Do nothing if it's not, otherwise toggle the checkbox
-	if next(bullet) == nil or bullet.type ~= "chk" then
-		return
-	end
-
-	local checked = H.cycle_checkbox_marker(lnum)
-
-	if Bullets.config.checkbox.nest then
-		-- Toggle children and parents
-		local completion_marker = H.sibling_checkbox_status(lnum)
-		H.set_parent_checkboxes(lnum, completion_marker)
-
-		-- Toggle children
-		if checked then
-			H.set_child_checkboxes(lnum, checked)
-		end
-	end
+	line = line:gsub(pattern, "%1[" .. marker .. "] ")
+	vim.fn.setline(row, line)
 end
 
 Bullets.toggle_checkbox = function()
 	local mode = vim.fn.mode()
-	local pattern1 = "^(%s*)[-*] %[[^x]%] "
-	local pattern2 = "^(%s*)[-*] %[.%] "
-	local pattern3 = "^(%s*)[-*] +"
-	local non_pattern = "^%s*%d+%. "
+	local pattern1 = "^(%s*)[-*] %[[^x]%] " -- not checked
+	local pattern2 = "^(%s*)[-*] %[.%] " -- has checkbox
+	local pattern3 = "^(%s*)[-*] +" -- list
+	local exclude_pattern = "^%s*%d+%. " -- numbered list
 
 	if mode == "n" then
 		local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 		local line = vim.fn.getline(row)
 		local len = #line - 1
-		if string.match(line, non_pattern) then
+		if line:match(exclude_pattern) then
 			return
-		elseif string.match(line, pattern1) or string.match(line, pattern2) then
-			Bullets.toggle_checkboxes_nested()
+		elseif line:match(pattern2) then
+			Bullets.cycle_checkbox_marker()
 			return
-		elseif string.match(line, pattern3) then
-			line = string.gsub(line, pattern3, "%1- [ ] ")
+		elseif line:match(pattern3) then
+			line = line:gsub(pattern3, "%1- [ ] ")
 		else
-			line = string.gsub(line, "^(%s*)", "%1- [ ] ")
+			line = line:gsub("^(%s*)", "%1- [ ] ")
 		end
 		col = col - len + #line
-		local marker = string.match(line, "^%s*- %[.%] ")
+		local marker = line:match("^%s*- %[.%] ")
 		if marker and col < #marker + 1 then
 			col = #marker + 1
 		end
@@ -1177,17 +1003,17 @@ Bullets.toggle_checkbox = function()
 		for i = anchor[2], head[2] do
 			local line = vim.fn.getline(i)
 			if vim.trim(line) ~= "" then
-				if string.match(line, pattern1) then -- not checked
+				if line:match(pattern1) then -- not checked
 					if case == 3 then
 						case = 2
 					end
-				elseif string.match(line, pattern2) then -- checked
-				elseif string.match(line, pattern3) then -- not a checkbox
-					line = string.gsub(line, pattern3, "%1- [ ] ")
+				elseif line:match(pattern2) then -- checked
+				elseif line:match(pattern3) then -- not a checkbox
+					line = line:gsub(pattern3, "%1- [ ] ")
 					vim.fn.setline(i, line)
 					case = 1
-				elseif not string.match(line, non_pattern) then -- not a list item, but also not a numbered list
-					line = string.gsub(line, "^(%s*)", "%1- [ ] ")
+				elseif not line:match(exclude_pattern) then -- not a list item, but also not a numbered list
+					line = line:gsub("^(%s*)", "%1- [ ] ")
 					vim.fn.setline(i, line)
 					case = 1
 				end
@@ -1201,14 +1027,14 @@ Bullets.toggle_checkbox = function()
 			if vim.trim(line) ~= "" then
 				if case == 2 then
 					-- check all checkboxes
-					if string.match(line, pattern1) then -- not checked
-						line = string.gsub(line, pattern1, "%1- [x] ")
+					if line:match(pattern1) then -- not checked
+						line = line:gsub(pattern1, "%1- [x] ")
 						vim.fn.setline(i, line)
 					end
 				else
 					-- uncheck all checkboxes
-					if string.match(line, pattern2) then -- not checked
-						line = string.gsub(line, pattern2, "%1- [ ] ")
+					if line:match(pattern2) then -- checked
+						line = line:gsub(pattern2, "%1- [ ] ")
 						vim.fn.setline(i, line)
 					end
 				end
@@ -1510,17 +1336,17 @@ Bullets.toggle_list = function()
 		local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 		local line = vim.fn.getline(row)
 		local len = #line - 1
-		if string.match(line, pattern1) then
-			line = string.gsub(line, pattern1, "%1")
-		elseif string.match(line, pattern2) then
-			line = string.gsub(line, pattern2, "%1")
-		elseif string.match(line, pattern3) then
-			line = string.gsub(line, pattern3, "%1- ")
+		if line:match(pattern1) then
+			line = line:gsub(pattern1, "%1")
+		elseif line:match(pattern2) then
+			line = line:gsub(pattern2, "%1")
+		elseif line:match(pattern3) then
+			line = line:gsub(pattern3, "%1- ")
 		else
-			line = string.gsub(line, "^(%s*)", "%1- ")
+			line = line:gsub("^(%s*)", "%1- ")
 		end
 		col = col - len + #line
-		local marker = string.match(line, "^%s*[-*] ")
+		local marker = line:match("^%s*[-*] ")
 		if marker and col < #marker + 1 then
 			col = #marker + 1
 		end
@@ -1537,7 +1363,7 @@ Bullets.toggle_list = function()
 		local is_list = true
 		for i = anchor[2], head[2] do
 			local line = vim.fn.getline(i)
-			if vim.trim(line) ~= "" and not string.match(line, pattern2) then
+			if vim.trim(line) ~= "" and not line:match(pattern2) then
 				is_list = false
 				break
 			end
@@ -1546,16 +1372,16 @@ Bullets.toggle_list = function()
 			local line = vim.fn.getline(i)
 			if vim.trim(line) ~= "" then
 				if is_list then
-					if string.match(line, pattern1) then
-						line = string.gsub(line, pattern1, "%1")
-					elseif string.match(line, pattern2) then
-						line = string.gsub(line, pattern2, "%1")
+					if line:match(pattern1) then
+						line = line:gsub(pattern1, "%1")
+					elseif line:match(pattern2) then
+						line = line:gsub(pattern2, "%1")
 					end
 				else
-					if string.match(line, pattern3) then
-						line = string.gsub(line, pattern3, "%1- ")
-					elseif not string.match(line, pattern2) then
-						line = string.gsub(line, "^(%s*)", "%1- ")
+					if line:match(pattern3) then
+						line = line:gsub(pattern3, "%1- ")
+					elseif not line:match(pattern2) then
+						line = line:gsub("^(%s*)", "%1- ")
 					end
 				end
 				vim.fn.setline(i, line)
@@ -1573,15 +1399,15 @@ Bullets.toggle_numbered_list = function()
 		local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 		local line = vim.fn.getline(row)
 		local len = #line
-		if string.match(line, pattern1) then
-			line = string.gsub(line, pattern1, "%1")
-		elseif string.match(line, pattern2) then
-			line = string.gsub(line, pattern2, "%11. ")
+		if line:match(pattern1) then
+			line = line:gsub(pattern1, "%1")
+		elseif line:match(pattern2) then
+			line = line:gsub(pattern2, "%11. ")
 		else
-			line = string.gsub(line, "^(%s*)", "%11. ")
+			line = line:gsub("^(%s*)", "%11. ")
 		end
 		col = col - len + #line
-		local marker = string.match(line, "^%s*1%. ")
+		local marker = line:match("^%s*1%. ")
 		if marker and col < #marker + 1 then
 			col = #marker + 1
 		end
@@ -1600,7 +1426,7 @@ Bullets.toggle_numbered_list = function()
 		for i = anchor[2], head[2] do
 			local line = vim.fn.getline(i)
 			if vim.trim(line) ~= "" then
-				is_list = string.match(line, pattern1) ~= nil
+				is_list = line:match(pattern1) ~= nil
 				indent = vim.fn.indent(i)
 				break
 			end
@@ -1611,16 +1437,16 @@ Bullets.toggle_numbered_list = function()
 			if vim.trim(line) ~= "" then
 				if vim.fn.indent(i) == indent then
 					if is_list then
-						if string.match(line, pattern1) then
-							line = string.gsub(line, pattern1, "%1")
+						if line:match(pattern1) then
+							line = line:gsub(pattern1, "%1")
 						end
 					else
-						if string.match(line, pattern2) then
-							line = string.gsub(line, pattern2, "%1" .. idx .. ". ")
-						elseif string.match(line, pattern1) then
-							line = string.gsub(line, pattern1, "%1" .. idx .. ". ")
+						if line:match(pattern2) then
+							line = line:gsub(pattern2, "%1" .. idx .. ". ")
+						elseif line:match(pattern1) then
+							line = line:gsub(pattern1, "%1" .. idx .. ". ")
 						else
-							line = string.gsub(line, "^(%s*)", "%1" .. idx .. ". ")
+							line = line:gsub("^(%s*)", "%1" .. idx .. ". ")
 						end
 						idx = idx + 1
 					end
@@ -1654,8 +1480,8 @@ Bullets.set_checkbox_marker = function()
 		for row = range[1], range[2] do
 			local line = vim.fn.getline(row)
 			local prefix = string.rep(" ", vim.fn.indent(row)) .. "- [" .. char .. "] "
-			line = string.gsub(line, "^%s*[-*] %[.%] *", "")
-			line = string.gsub(line, "^%s*[-*] *", "")
+			line = line:gsub("^%s*[-*] %[.%] *", "")
+			line = line:gsub("^%s*[-*] *", "")
 			line = prefix .. line
 			vim.fn.setline(row, line)
 		end
