@@ -107,6 +107,18 @@ H.apply_config = function(config)
 	vim.api.nvim_create_user_command("InsertNewBullet", function()
 		Bullets.insert_new_bullet("o")
 	end, {})
+	vim.api.nvim_create_user_command("SelectList", function()
+		Bullets.select_list()
+	end, {})
+	vim.api.nvim_create_user_command("SelectListText", function()
+		Bullets.select_list_text()
+	end, {})
+	vim.api.nvim_create_user_command("FindPrevListSibling", function()
+		Bullets.find_list_sibling(true)
+	end, {})
+	vim.api.nvim_create_user_command("FindNextListSibling", function()
+		Bullets.find_list_sibling()
+	end, {})
 	vim.api.nvim_create_user_command("RenumberList", function()
 		Bullets.renumber_whole_list()
 	end, {})
@@ -131,35 +143,25 @@ H.apply_config = function(config)
 		end,
 	})
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-newline-o)", ":InsertNewBullet<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap(
-		"v",
-		"<Plug>(bullets-renumber)",
-		":RenumberSelection<cr>",
-		{ noremap = true, silent = true }
-	)
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-renumber)", ":RenumberList<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap(
-		"n",
-		"<Plug>(bullets-toggle-checkbox)",
-		":ToggleCheckbox<cr>",
-		{ noremap = true, silent = true }
-	)
+	vim.api.nvim_set_keymap("x", "<Plug>(bullets-renumber)", ":RenumberSelection<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-select-list)", "<cmd>SelectList<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("x", "<Plug>(bullets-select-list)", "<cmd>SelectList<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("o", "<Plug>(bullets-select-list)", "<cmd>SelectList<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-select-list-text)", "<cmd>SelectListText<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("v", "<Plug>(bullets-select-list-text)", "<cmd>SelectListText<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("o", "<Plug>(bullets-select-list-text)", "<cmd>SelectListText<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-prev-list-sibling)", "<cmd>FindPrevListSibling<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("x", "<Plug>(bullets-prev-list-sibling)", "<cmd>FindPrevListSibling<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-next-list-sibling)", "<cmd>FindNextListSibling<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("x", "<Plug>(bullets-next-list-sibling)", "<cmd>FindNextListSibling<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-toggle-checkbox)", ":ToggleCheckbox<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("i", "<Plug>(bullets-demote)", "<C-O>:BulletDemote<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-demote)", ":BulletDemote<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("v", "<Plug>(bullets-demote)", ":BulletDemoteVisual<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap(
-		"i",
-		"<Plug>(bullets-promote)",
-		"<C-O>:BulletPromote<cr>",
-		{ noremap = true, silent = true }
-	)
+	vim.api.nvim_set_keymap("i", "<Plug>(bullets-promote)", "<C-O>:BulletPromote<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-promote)", ":BulletPromote<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap(
-		"v",
-		"<Plug>(bullets-promote)",
-		":BulletPromoteVisual<cr>",
-		{ noremap = true, silent = true }
-	)
+	vim.api.nvim_set_keymap("v", "<Plug>(bullets-promote)", ":BulletPromoteVisual<cr>", { noremap = true, silent = true })
 
 	if config.set_mappings then
 		vim.api.nvim_create_augroup("BulletMaps", { clear = true })
@@ -982,6 +984,86 @@ Bullets.toggle_checkboxes_nested = function()
 end
 
 -- Checkboxes --------------------------------------------- }}}
+
+-- List Items --------------------------------------------- {{{
+
+local function node_at_cursor(type)
+	local bufnr = vim.api.nvim_get_current_buf()
+	local parser = vim.treesitter.get_parser(bufnr, "markdown", { error = false })
+	if not parser then
+		return nil
+	end
+	local tree = parser:parse()[1]
+	local root = tree:root()
+	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+	row = row - 1
+	local node = root:descendant_for_range(row, col, row, col)
+	while node and node:type() ~= type do
+		node = node:parent()
+	end
+	if not node then
+		node = vim.treesitter.get_node()
+		while node and node:type() ~= type do
+			node = node:parent()
+		end
+	end
+	return node
+end
+
+Bullets.select_list_text = function()
+	local mode = vim.fn.mode()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local list_item_node = node_at_cursor("list_item")
+	if not list_item_node then
+		return
+	end
+	local query = vim.treesitter.query.parse("markdown", "(list_item (paragraph (inline) @content))")
+	for _, node in query:iter_captures(list_item_node, bufnr) do
+		local r1, c1, r2, c2 = node:range()
+		vim.api.nvim_win_set_cursor(0, { r1 + 1, c1 })
+		vim.cmd("normal! " .. (mode == "n" and "v" or "o"))
+		vim.api.nvim_win_set_cursor(0, { r2 + 1, c2 - 1 })
+		return
+	end
+end
+
+Bullets.select_list = function()
+	local node = node_at_cursor("list_item")
+	if node then
+		local top, _, bottom, _ = node:range()
+		vim.cmd(string.format("normal! V%dGo%dG", bottom, top + 1))
+	end
+end
+
+Bullets.find_list_sibling = function(prev)
+	local count = vim.v.count1
+	local node = node_at_cursor("list_item")
+	if not node then
+		return
+	end
+	local target
+	for _ = 1, count do
+		if prev then
+			target = node:prev_named_sibling()
+		else
+			target = node:next_named_sibling()
+		end
+		if not target or target:type() ~= "list_item" then
+			return
+		end
+		node = target
+	end
+	local row, col
+	if node:child(1) then
+		row, col = node:child(1):range()
+	else
+		row = node:child(0):range()
+		col = #vim.fn.getline(row + 1)
+	end
+	vim.api.nvim_win_set_cursor(0, { row + 1, col })
+end
+
+-- List Items --------------------------------------------- }}}
 
 -- Renumbering --------------------------------------------- {{{
 H.get_level = function(bullet)
