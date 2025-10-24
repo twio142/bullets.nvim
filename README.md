@@ -29,8 +29,8 @@ A lua port of [bullets.vim](https://github.com/bullets-vim/bullets.vim)
       toggle_partials = true,
     },
     custom_mappings = { -- only works if set_mappings is false
-      { 'inoremap', '<S-cr>', '<cr>' },
-      { 'nmap', 'o', '<Plug>(bullets-newline-o)' },
+      { 'i', '<S-cr>', '<cr>' },
+      { 'n', 'o', '<Plug>(bullets-newline-o)' },
     }
   }
 }

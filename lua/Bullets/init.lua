@@ -144,60 +144,149 @@ H.apply_config = function(config)
 	})
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-newline-o)", ":InsertNewBullet<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-renumber)", ":RenumberList<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("x", "<Plug>(bullets-renumber)", ":RenumberSelection<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-select-list)", "<cmd>SelectList<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("x", "<Plug>(bullets-select-list)", "<cmd>SelectList<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("o", "<Plug>(bullets-select-list)", "<cmd>SelectList<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-select-list-text)", "<cmd>SelectListText<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("v", "<Plug>(bullets-select-list-text)", "<cmd>SelectListText<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("o", "<Plug>(bullets-select-list-text)", "<cmd>SelectListText<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-prev-list-sibling)", "<cmd>FindPrevListSibling<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("x", "<Plug>(bullets-prev-list-sibling)", "<cmd>FindPrevListSibling<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-next-list-sibling)", "<cmd>FindNextListSibling<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("x", "<Plug>(bullets-next-list-sibling)", "<cmd>FindNextListSibling<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-toggle-checkbox)", ":ToggleCheckbox<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-renumber)",
+		":RenumberSelection<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-select-list)",
+		"<cmd>SelectList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-select-list)",
+		"<cmd>SelectList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"o",
+		"<Plug>(bullets-select-list)",
+		"<cmd>SelectList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-select-list-text)",
+		"<cmd>SelectListText<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"v",
+		"<Plug>(bullets-select-list-text)",
+		"<cmd>SelectListText<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"o",
+		"<Plug>(bullets-select-list-text)",
+		"<cmd>SelectListText<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-prev-list-sibling)",
+		"<cmd>FindPrevListSibling<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-prev-list-sibling)",
+		"<cmd>FindPrevListSibling<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-next-list-sibling)",
+		"<cmd>FindNextListSibling<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-next-list-sibling)",
+		"<cmd>FindNextListSibling<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-toggle-checkbox)",
+		":ToggleCheckbox<cr>",
+		{ noremap = true, silent = true }
+	)
 	vim.api.nvim_set_keymap("i", "<Plug>(bullets-demote)", "<C-O>:BulletDemote<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-demote)", ":BulletDemote<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("v", "<Plug>(bullets-demote)", ":BulletDemoteVisual<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("i", "<Plug>(bullets-promote)", "<C-O>:BulletPromote<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap(
+		"i",
+		"<Plug>(bullets-promote)",
+		"<C-O>:BulletPromote<cr>",
+		{ noremap = true, silent = true }
+	)
 	vim.api.nvim_set_keymap("n", "<Plug>(bullets-promote)", ":BulletPromote<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("v", "<Plug>(bullets-promote)", ":BulletPromoteVisual<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap(
+		"v",
+		"<Plug>(bullets-promote)",
+		":BulletPromoteVisual<cr>",
+		{ noremap = true, silent = true }
+	)
 
-	if config.set_mappings then
-		vim.api.nvim_create_augroup("BulletMaps", { clear = true })
-		H.buf_map("imap", "<cr>", "<Plug>(bullets-newline-cr)")
-		H.buf_map("nmap", "o", "<Plug>(bullets-newline-o)")
-		H.buf_map("vmap", "gN", "<Plug>(bullets-renumber)")
-		H.buf_map("nmap", "gN", "<Plug>(bullets-renumber)")
-		H.buf_map("nmap", "<leader>x", "<Plug>(bullets-toggle-checkbox)")
-		H.buf_map("imap", "<C-t>", "<Plug>(bullets-demote)")
-		H.buf_map("nmap", ">>", "<Plug>(bullets-demote)")
-		H.buf_map("vmap", ">", "<Plug>(bullets-demote)")
-		H.buf_map("imap", "<C-d>", "<Plug>(bullets-promote)")
-		H.buf_map("nmap", "<<", "<Plug>(bullets-promote)")
-		H.buf_map("vmap", "<", "<Plug>(bullets-promote)")
-	elseif config.custom_mappings then
-		vim.api.nvim_create_augroup("BulletMaps", { clear = true })
-		for _, mapping in ipairs(config.custom_mappings) do
-			local mode = mapping[1]
-			local lhs = mapping[2]
-			local rhs = mapping[3]
-			H.buf_map(mode, lhs, rhs)
-		end
+	local mappings = {
+		{ "i", "<cr>", "<Plug>(bullets-newline-cr)" },
+		{ "n", "o", "<Plug>(bullets-newline-o)" },
+		{ { "n", "v" }, "gN", "<Plug>(bullets-renumber)" },
+		{ "n", "<leader>x", "<Plug>(bullets-toggle-checkbox)" },
+		{ "i", "<C-t>", "<Plug>(bullets-demote)" },
+		{ "n", ">>", "<Plug>(bullets-demote)" },
+		{ "v", ">", "<Plug>(bullets-demote)" },
+		{ "i", "<C-d>", "<Plug>(bullets-promote)" },
+		{ "n", "<<", "<Plug>(bullets-promote)" },
+		{ "v", "<", "<Plug>(bullets-promote)" },
+	}
+
+	if not config.set_mappings then
+		mappings = config.custom_mappings
+	end
+
+	if mappings ~= nil and #mappings > 0 then
+		H.buf_map(mappings)
 	end
 end
 
-H.buf_map = function(mode, lhs, rhs)
-	local fts = table.concat(Bullets.config.file_types, ",")
+H.buf_map = function(mappings)
+	vim.api.nvim_create_augroup("BulletMaps", { clear = true })
+
+	local set_mappings = function(ctx)
+		for _, mapping in ipairs(mappings) do
+			local modes = mapping[1]
+			if type(modes) == "string" then
+				modes = { modes }
+			end
+			local lhs = mapping[2]
+			local rhs = mapping[3]
+			local desc = mapping.desc or ""
+			for _, mode in ipairs(modes) do
+				vim.api.nvim_buf_set_keymap(ctx.buf, mode, lhs, rhs, { noremap = true, silent = true, desc = desc })
+			end
+		end
+	end
+
 	vim.api.nvim_create_autocmd("Filetype", {
-		pattern = fts,
+		pattern = Bullets.config.file_types,
 		group = "BulletMaps",
-		command = mode .. " <silent> <buffer> " .. lhs .. " " .. rhs,
+		callback = set_mappings,
 	})
+
 	if Bullets.config.empty_buffers then
 		vim.api.nvim_create_autocmd("BufEnter", {
 			group = "BulletMaps",
-			command = 'if bufname("") == ""|' .. mode .. " <silent> <buffer> " .. lhs .. " " .. rhs .. "| endif",
+			callback = function(ctx)
+				if ctx.match == "" then
+					set_mappings(ctx)
+				end
+			end,
 		})
 	end
 end
