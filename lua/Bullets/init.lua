@@ -132,7 +132,19 @@ H.apply_config = function(config)
 		Bullets.select_checkbox(true)
 	end, {})
 	vim.api.nvim_create_user_command("ToggleCheckbox", function()
-		Bullets.toggle_checkboxes_nested()
+		Bullets.toggle_checkbox()
+	end, {})
+	vim.api.nvim_create_user_command("ToggleList", function()
+		Bullets.toggle_list()
+	end, { range = true })
+	vim.api.nvim_create_user_command("ToggleNumberedList", function()
+		Bullets.toggle_numbered_list()
+	end, { range = true })
+	vim.api.nvim_create_user_command("SetCheckboxMarker", function()
+		Bullets.set_checkbox_marker()
+	end, { range = true })
+	vim.api.nvim_create_user_command("CheckMove", function()
+		Bullets.check_move()
 	end, {})
 
 	vim.api.nvim_set_keymap("i", "<Plug>(bullets-newline-cr)", "", {
@@ -142,12 +154,17 @@ H.apply_config = function(config)
 			Bullets.insert_new_bullet("cr")
 		end,
 	})
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-newline-o)", ":InsertNewBullet<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-renumber)", ":RenumberList<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-newline-o)",
+		"<cmd>InsertNewBullet<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-renumber)", "<cmd>RenumberList<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap(
 		"x",
 		"<Plug>(bullets-renumber)",
-		":RenumberSelection<cr>",
+		"<cmd>RenumberSelection<cr>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_set_keymap(
@@ -213,23 +230,71 @@ H.apply_config = function(config)
 	vim.api.nvim_set_keymap(
 		"n",
 		"<Plug>(bullets-toggle-checkbox)",
-		":ToggleCheckbox<cr>",
+		"<cmd>ToggleCheckbox<cr>",
 		{ noremap = true, silent = true }
 	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-toggle-checkbox)",
+		"<cmd>ToggleCheckbox<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-toggle-list)",
+		"<cmd>ToggleList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-toggle-list)",
+		"<cmd>ToggleList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-toggle-numbered-list)",
+		"<cmd>ToggleNumberedList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-toggle-numbered-list)",
+		"<cmd>ToggleNumberedList<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-set-checkbox-marker)",
+		"<cmd>SetCheckboxMarker<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-set-checkbox-marker)",
+		"<cmd>SetCheckboxMarker<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-check-move)", "<cmd>CheckMove<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap("i", "<Plug>(bullets-demote)", "<C-O>:BulletDemote<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-demote)", ":BulletDemote<cr>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("v", "<Plug>(bullets-demote)", ":BulletDemoteVisual<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-demote)", "<cmd>BulletDemote<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap(
+		"v",
+		"<Plug>(bullets-demote)",
+		"<cmd>BulletDemoteVisual<cr>",
+		{ noremap = true, silent = true }
+	)
 	vim.api.nvim_set_keymap(
 		"i",
 		"<Plug>(bullets-promote)",
 		"<C-O>:BulletPromote<cr>",
 		{ noremap = true, silent = true }
 	)
-	vim.api.nvim_set_keymap("n", "<Plug>(bullets-promote)", ":BulletPromote<cr>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("n", "<Plug>(bullets-promote)", "<cmd>BulletPromote<cr>", { noremap = true, silent = true })
 	vim.api.nvim_set_keymap(
 		"v",
 		"<Plug>(bullets-promote)",
-		":BulletPromoteVisual<cr>",
+		"<cmd>BulletPromoteVisual<cr>",
 		{ noremap = true, silent = true }
 	)
 
@@ -874,7 +939,7 @@ H.set_checkbox = function(lnum, marker)
 	end
 end
 
-H.toggle_checkbox = function(lnum)
+H.cycle_checkbox_marker = function(lnum)
 	-- Toggles the checkbox on line a:lnum.
 	-- Returns the resulting status (1) checked, (0) unchecked, (-1) unchanged
 	local indent = vim.fn.indent(lnum)
@@ -1058,7 +1123,7 @@ Bullets.toggle_checkboxes_nested = function()
 		return
 	end
 
-	local checked = H.toggle_checkbox(lnum)
+	local checked = H.cycle_checkbox_marker(lnum)
 
 	if Bullets.config.checkbox.nest then
 		-- Toggle children and parents
@@ -1068,6 +1133,86 @@ Bullets.toggle_checkboxes_nested = function()
 		-- Toggle children
 		if checked then
 			H.set_child_checkboxes(lnum, checked)
+		end
+	end
+end
+
+Bullets.toggle_checkbox = function()
+	local mode = vim.fn.mode()
+	local pattern1 = "^(%s*)[-*] %[[^x]%] "
+	local pattern2 = "^(%s*)[-*] %[.%] "
+	local pattern3 = "^(%s*)[-*] +"
+	local non_pattern = "^%s*%d+%. "
+
+	if mode == "n" then
+		local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+		local line = vim.fn.getline(row)
+		local len = #line - 1
+		if string.match(line, non_pattern) then
+			return
+		elseif string.match(line, pattern1) or string.match(line, pattern2) then
+			Bullets.toggle_checkboxes_nested()
+			return
+		elseif string.match(line, pattern3) then
+			line = string.gsub(line, pattern3, "%1- [ ] ")
+		else
+			line = string.gsub(line, "^(%s*)", "%1- [ ] ")
+		end
+		col = col - len + #line
+		local marker = string.match(line, "^%s*- %[.%] ")
+		if marker and col < #marker + 1 then
+			col = #marker + 1
+		end
+		vim.fn.setline(row, line)
+		vim.fn.setpos(".", { 0, row, col, 0 })
+	else
+		local anchor = vim.fn.getpos("v")
+		local head = vim.fn.getpos(".")
+		if anchor[2] > head[2] then
+			anchor, head = head, anchor
+		elseif anchor[2] == head[2] and anchor[3] > head[3] then
+			anchor, head = head, anchor
+		end
+		local case = 3
+		for i = anchor[2], head[2] do
+			local line = vim.fn.getline(i)
+			if vim.trim(line) ~= "" then
+				if string.match(line, pattern1) then -- not checked
+					if case == 3 then
+						case = 2
+					end
+				elseif string.match(line, pattern2) then -- checked
+				elseif string.match(line, pattern3) then -- not a checkbox
+					line = string.gsub(line, pattern3, "%1- [ ] ")
+					vim.fn.setline(i, line)
+					case = 1
+				elseif not string.match(line, non_pattern) then -- not a list item, but also not a numbered list
+					line = string.gsub(line, "^(%s*)", "%1- [ ] ")
+					vim.fn.setline(i, line)
+					case = 1
+				end
+			end
+		end
+		if case == 1 then
+			return
+		end
+		for i = anchor[2], head[2] do
+			local line = vim.fn.getline(i)
+			if vim.trim(line) ~= "" then
+				if case == 2 then
+					-- check all checkboxes
+					if string.match(line, pattern1) then -- not checked
+						line = string.gsub(line, pattern1, "%1- [x] ")
+						vim.fn.setline(i, line)
+					end
+				else
+					-- uncheck all checkboxes
+					if string.match(line, pattern2) then -- not checked
+						line = string.gsub(line, pattern2, "%1- [ ] ")
+						vim.fn.setline(i, line)
+					end
+				end
+			end
 		end
 	end
 end
@@ -1353,6 +1498,193 @@ Bullets.insert_new_bullet = function(trigger)
 
 	-- need to return a string since we are in insert mode calling with <C-R>=
 	return ""
+end
+
+Bullets.toggle_list = function()
+	local mode = vim.fn.mode()
+	local pattern1 = "^(%s*)[-*] %[.%] "
+	local pattern2 = "^(%s*)[-*] +"
+	local pattern3 = "^(%s*)%d+%. "
+
+	if mode == "n" then
+		local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+		local line = vim.fn.getline(row)
+		local len = #line - 1
+		if string.match(line, pattern1) then
+			line = string.gsub(line, pattern1, "%1")
+		elseif string.match(line, pattern2) then
+			line = string.gsub(line, pattern2, "%1")
+		elseif string.match(line, pattern3) then
+			line = string.gsub(line, pattern3, "%1- ")
+		else
+			line = string.gsub(line, "^(%s*)", "%1- ")
+		end
+		col = col - len + #line
+		local marker = string.match(line, "^%s*[-*] ")
+		if marker and col < #marker + 1 then
+			col = #marker + 1
+		end
+		vim.fn.setline(row, line)
+		vim.fn.setpos(".", { 0, row, col, 0 })
+	else
+		local anchor = vim.fn.getpos("v")
+		local head = vim.fn.getpos(".")
+		if anchor[2] > head[2] then
+			anchor, head = head, anchor
+		elseif anchor[2] == head[2] and anchor[3] > head[3] then
+			anchor, head = head, anchor
+		end
+		local is_list = true
+		for i = anchor[2], head[2] do
+			local line = vim.fn.getline(i)
+			if vim.trim(line) ~= "" and not string.match(line, pattern2) then
+				is_list = false
+				break
+			end
+		end
+		for i = anchor[2], head[2] do
+			local line = vim.fn.getline(i)
+			if vim.trim(line) ~= "" then
+				if is_list then
+					if string.match(line, pattern1) then
+						line = string.gsub(line, pattern1, "%1")
+					elseif string.match(line, pattern2) then
+						line = string.gsub(line, pattern2, "%1")
+					end
+				else
+					if string.match(line, pattern3) then
+						line = string.gsub(line, pattern3, "%1- ")
+					elseif not string.match(line, pattern2) then
+						line = string.gsub(line, "^(%s*)", "%1- ")
+					end
+				end
+				vim.fn.setline(i, line)
+			end
+		end
+	end
+end
+
+Bullets.toggle_numbered_list = function()
+	local mode = vim.fn.mode()
+	local pattern1 = "^(%s*)%d+%. "
+	local pattern2 = "^(%s*)[-*] +"
+
+	if mode == "n" then
+		local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+		local line = vim.fn.getline(row)
+		local len = #line
+		if string.match(line, pattern1) then
+			line = string.gsub(line, pattern1, "%1")
+		elseif string.match(line, pattern2) then
+			line = string.gsub(line, pattern2, "%11. ")
+		else
+			line = string.gsub(line, "^(%s*)", "%11. ")
+		end
+		col = col - len + #line
+		local marker = string.match(line, "^%s*1%. ")
+		if marker and col < #marker + 1 then
+			col = #marker + 1
+		end
+		vim.fn.setline(row, line)
+		vim.fn.setpos(".", { 0, row, col, 0 })
+	else
+		local anchor = vim.fn.getpos("v")
+		local head = vim.fn.getpos(".")
+		if anchor[2] > head[2] then
+			anchor, head = head, anchor
+		elseif anchor[2] == head[2] and anchor[3] > head[3] then
+			anchor, head = head, anchor
+		end
+		local is_list = true
+		local indent = -1
+		for i = anchor[2], head[2] do
+			local line = vim.fn.getline(i)
+			if vim.trim(line) ~= "" then
+				is_list = string.match(line, pattern1) ~= nil
+				indent = vim.fn.indent(i)
+				break
+			end
+		end
+		local idx = 1
+		for i = anchor[2], head[2] do
+			local line = vim.fn.getline(i)
+			if vim.trim(line) ~= "" then
+				if vim.fn.indent(i) == indent then
+					if is_list then
+						if string.match(line, pattern1) then
+							line = string.gsub(line, pattern1, "%1")
+						end
+					else
+						if string.match(line, pattern2) then
+							line = string.gsub(line, pattern2, "%1" .. idx .. ". ")
+						elseif string.match(line, pattern1) then
+							line = string.gsub(line, pattern1, "%1" .. idx .. ". ")
+						else
+							line = string.gsub(line, "^(%s*)", "%1" .. idx .. ". ")
+						end
+						idx = idx + 1
+					end
+				elseif vim.fn.indent(i) < indent then
+					return
+				end
+			end
+			vim.fn.setline(i, line)
+		end
+	end
+end
+
+Bullets.set_checkbox_marker = function()
+	local mode = vim.fn.mode()
+	local range
+	if mode == "n" then
+		local row = unpack(vim.api.nvim_win_get_cursor(0))
+		range = { row, row }
+	else
+		local anchor = vim.fn.getpos("v")
+		local head = vim.fn.getpos(".")
+		if anchor[2] > head[2] then
+			anchor, head = head, anchor
+		end
+		range = { anchor[2], head[2] }
+	end
+	print("Enter checkbox marker")
+	local ok, code = pcall(vim.fn.getchar)
+	if ok and type(code) == "number" then
+		local char = vim.fn.nr2char(code)
+		for row = range[1], range[2] do
+			local line = vim.fn.getline(row)
+			local prefix = string.rep(" ", vim.fn.indent(row)) .. "- [" .. char .. "] "
+			line = string.gsub(line, "^%s*[-*] %[.%] *", "")
+			line = string.gsub(line, "^%s*[-*] *", "")
+			line = prefix .. line
+			vim.fn.setline(row, line)
+		end
+	end
+end
+
+Bullets.check_move = function()
+	local node = node_at_cursor("list_item")
+	if node then
+		for child in node:iter_children() do
+			if child:type() == "task_list_marker_unchecked" then
+				local list_node = node:parent()
+				if list_node and list_node:type() == "list" then
+					local start_row, _, end_row, _ = node:range()
+					local lines = vim.api.nvim_buf_get_lines(0, start_row, end_row, false)
+					lines[1] = lines[1]:gsub(" %[ %]", " [x]")
+					local first_row, _, last_row, _ = list_node:range()
+					local last_line = vim.fn.getline(last_row)
+					while last_row > first_row and vim.fn.trim(last_line) == "" do
+						last_row = last_row - 1
+						last_line = vim.fn.getline(last_row)
+					end
+					vim.api.nvim_buf_set_lines(0, last_row, last_row, true, lines)
+					vim.api.nvim_buf_set_lines(0, start_row, end_row, false, {})
+				end
+				return
+			end
+		end
+	end
 end
 
 return Bullets
