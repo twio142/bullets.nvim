@@ -120,6 +120,9 @@ H.apply_config = function(config)
 	vim.api.nvim_create_user_command("FindNextListSibling", function()
 		Bullets.find_list_sibling()
 	end, {})
+	vim.api.nvim_create_user_command("FindListParent", function()
+		Bullets.find_list_parent()
+	end, {})
 	vim.api.nvim_create_user_command("RenumberList", function()
 		Bullets.renumber_whole_list()
 	end, {})
@@ -226,6 +229,18 @@ H.apply_config = function(config)
 		"x",
 		"<Plug>(bullets-next-list-sibling)",
 		"<cmd>FindNextListSibling<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"n",
+		"<Plug>(bullets-list-parent)",
+		"<cmd>FindListParent<cr>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_set_keymap(
+		"x",
+		"<Plug>(bullets-list-parent)",
+		"<cmd>FindListParent<cr>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_set_keymap(
@@ -1121,6 +1136,24 @@ Bullets.find_list_sibling = function(prev)
 		col = #vim.fn.getline(row + 1)
 	end
 	vim.api.nvim_win_set_cursor(0, { row + 1, col })
+end
+
+Bullets.find_list_parent = function()
+	local node = node_at_cursor("list_item")
+	if not node then
+		return
+	end
+	local parent = node:parent():parent()
+	if parent and parent:type() == "list_item" then
+		local row, col
+		if parent:child(1) then
+			row, col = parent:child(1):range()
+		else
+			row = parent:child(0):range()
+			col = #vim.fn.getline(row + 1)
+		end
+		vim.api.nvim_win_set_cursor(0, { row + 1, col })
+	end
 end
 
 -- List Items --------------------------------------------- }}}
