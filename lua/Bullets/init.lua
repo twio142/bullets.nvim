@@ -1116,25 +1116,37 @@ Bullets.find_list_sibling = function(prev)
 	if not node then
 		return
 	end
-	local target
+	local _node
 	for _ = 1, count do
 		if prev then
-			target = node:prev_named_sibling()
+			_node = node:prev_named_sibling()
+			if not _node then
+				-- fallback to list item's parent
+				node = node:parent():parent()
+				break
+			end
 		else
-			target = node:next_named_sibling()
+			_node = node:next_named_sibling()
+			if not _node then
+				-- fallback to list item's parent's next sibling
+				node = node:parent():parent():next_named_sibling()
+				break
+			end
 		end
-		if not target or target:type() ~= "list_item" then
+		node = _node
+	end
+	if not node then
+		return
+	end
+	for child in node:iter_children() do
+		if child:type() == "paragraph" then
+			local row, col = child:range()
+			vim.api.nvim_win_set_cursor(0, { row + 1, col })
 			return
 		end
-		node = target
 	end
-	local row, col
-	if node:child(1) then
-		row, col = node:child(1):range()
-	else
-		row = node:child(0):range()
-		col = #vim.fn.getline(row + 1)
-	end
+	local row = node:child(0):range()
+	local col = #vim.fn.getline(row + 1)
 	vim.api.nvim_win_set_cursor(0, { row + 1, col })
 end
 
@@ -1145,13 +1157,15 @@ Bullets.find_list_parent = function()
 	end
 	local parent = node:parent():parent()
 	if parent and parent:type() == "list_item" then
-		local row, col
-		if parent:child(1) then
-			row, col = parent:child(1):range()
-		else
-			row = parent:child(0):range()
-			col = #vim.fn.getline(row + 1)
+		for child in parent:iter_children() do
+			if child:type() == "paragraph" then
+				local row, col = child:range()
+				vim.api.nvim_win_set_cursor(0, { row + 1, col })
+				return
+			end
 		end
+		local row = node:child(0):range()
+		local col = #vim.fn.getline(row + 1)
 		vim.api.nvim_win_set_cursor(0, { row + 1, col })
 	end
 end
