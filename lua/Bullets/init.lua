@@ -1384,7 +1384,7 @@ Bullets.toggle_list = function()
 		local line = vim.fn.getline(row)
 		local len = #line - 1
 		if line:match(pattern1) then
-			line = line:gsub(pattern1, "%1")
+			line = line:gsub(pattern1, "%1- ")
 		elseif line:match(pattern2) then
 			line = line:gsub(pattern2, "%1")
 		elseif line:match(pattern3) then
@@ -1420,7 +1420,7 @@ Bullets.toggle_list = function()
 			if vim.trim(line) ~= "" then
 				if is_list then
 					if line:match(pattern1) then
-						line = line:gsub(pattern1, "%1")
+						line = line:gsub(pattern1, "%1- ")
 					elseif line:match(pattern2) then
 						line = line:gsub(pattern2, "%1")
 					end
