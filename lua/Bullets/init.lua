@@ -42,19 +42,15 @@ Bullets.setup = function(config)
 end
 
 Bullets.config = {
+	file_types = { "markdown", "text", "gitcommit" },
+	empty_buffers = true,
+	line_spacing = 1,
 	colon_indent = true,
 	delete_last_bullet = true,
-	empty_buffers = true,
-	file_types = { "markdown", "text", "gitcommit" },
-	line_spacing = 1,
-	set_mappings = true,
 	outline_levels = { "ROM", "ABC", "num", "abc", "rom", "std*", "std-", "std+" },
 	renumber = true,
-	alpha = {
-		len = 2,
-	},
+	alpha = { len = 2 },
 	checkbox = {
-		nest = true,
 		markers = " .oOx",
 		toggle_partials = true,
 	},
@@ -71,14 +67,12 @@ H.setup_config = function(config)
 	vim.validate("empty_buffers", config.empty_buffers, "boolean", true)
 	vim.validate("file_types", config.file_types, "table", true)
 	vim.validate("line_spacing", config.line_spacing, "number", true)
-	vim.validate("set_mappings", config.set_mappings, "boolean", true)
 	vim.validate("custom_mappings", config.custom_mappings, "table", true)
 	vim.validate("outline_levels", config.outline_levels, "table", true)
 	vim.validate("renumber", config.renumber, "boolean", true)
 	vim.validate("alpha", config.alpha, "table", true)
 	vim.validate("checkbox", config.checkbox, "table", true)
 	vim.validate("alpha.len", config.alpha.len, "number", true)
-	vim.validate("checkbox.nest", config.checkbox.nest, "boolean", true)
 	vim.validate("checkbox.markers", config.checkbox.markers, "string", true)
 	vim.validate("checkbox.toggle_partials", config.checkbox.toggle_partials, "boolean", true)
 	return config
@@ -314,22 +308,19 @@ H.apply_config = function(config)
 		{ noremap = true, silent = true }
 	)
 
-	local mappings = {
-		{ "i", "<cr>", "<Plug>(bullets-newline-cr)" },
-		{ "n", "o", "<Plug>(bullets-newline-o)" },
-		{ { "n", "v" }, "gN", "<Plug>(bullets-renumber)" },
-		{ "n", "<leader>x", "<Plug>(bullets-toggle-checkbox)" },
-		{ "i", "<C-t>", "<Plug>(bullets-demote)" },
-		{ "n", ">>", "<Plug>(bullets-demote)" },
-		{ "v", ">", "<Plug>(bullets-demote)" },
-		{ "i", "<C-d>", "<Plug>(bullets-promote)" },
-		{ "n", "<<", "<Plug>(bullets-promote)" },
-		{ "v", "<", "<Plug>(bullets-promote)" },
-	}
-
-	if not config.set_mappings then
-		mappings = config.custom_mappings
-	end
+	local mappings = config.custom_mappings
+		or {
+			{ "i", "<cr>", "<Plug>(bullets-newline-cr)" },
+			{ "n", "o", "<Plug>(bullets-newline-o)" },
+			{ { "n", "v" }, "gN", "<Plug>(bullets-renumber)" },
+			{ "n", "<leader>x", "<Plug>(bullets-toggle-checkbox)" },
+			{ "i", "<C-t>", "<Plug>(bullets-demote)" },
+			{ "n", ">>", "<Plug>(bullets-demote)" },
+			{ "v", ">", "<Plug>(bullets-demote)" },
+			{ "i", "<C-d>", "<Plug>(bullets-promote)" },
+			{ "n", "<<", "<Plug>(bullets-promote)" },
+			{ "v", "<", "<Plug>(bullets-promote)" },
+		}
 
 	if mappings ~= nil and #mappings > 0 then
 		H.buf_map(mappings)
