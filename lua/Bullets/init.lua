@@ -799,9 +799,29 @@ end
 Bullets.change_bullet_level = function(direction, is_visual)
 	-- Changes the bullet level for each of the selected lines
 	local sel = H.get_selection(is_visual)
-	for lnum = sel.start_line, sel.end_line do
-		H.change_line_bullet_level(direction, lnum)
+	local count = vim.v.count1
+
+	if sel.visual_mode ~= "" then
+		vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", true)
 	end
+
+	local start_line, end_line, repeat_count
+	if sel.visual_mode ~= "" then
+		start_line = sel.start_line
+		end_line = sel.end_line
+		repeat_count = count
+	else
+		start_line = sel.start_line
+		end_line = math.min(sel.start_line + count - 1, vim.fn.line("$"))
+		repeat_count = 1
+	end
+
+	for _ = 1, repeat_count do
+		for lnum = start_line, end_line do
+			H.change_line_bullet_level(direction, lnum)
+		end
+	end
+
 	if Bullets.config.renumber then
 		-- Pass the current visual selection so that it gets reset after
 		-- renumbering the list.
@@ -872,17 +892,24 @@ H.get_selection = function(is_visual)
 	local sel = {}
 	local mode = ""
 	if is_visual ~= 0 then
-		mode = vim.fn.visualmode()
+		mode = vim.fn.mode()
+		if mode ~= "v" and mode ~= "V" and mode ~= "\22" then
+			mode = vim.fn.visualmode()
+		end
 	end
-	if mode == "v" or mode == "V" or mode == "\\<C-v>" then
-		-- local start_line, start_col = vim.fn.getpos("'<")[2], vim.fn.getpos("'>")[3]
-		local start_line = { unpack(vim.fn.getpos("'<"), 2, 3) }
-		sel.start_line = start_line[1]
-		sel.start_offset = vim.str_utfindex(vim.fn.getline(sel.start_line)) - start_line[2]
-		-- local end_line, end_col = vim.fn.getpos("'>")[2], vim.fn.getpos("'>")[3]
-		local end_line = { unpack(vim.fn.getpos("'>"), 2, 3) }
-		sel.end_line = end_line[1]
-		sel.end_offset = vim.str_utfindex(vim.fn.getline(sel.end_line)) - end_line[2]
+	if mode == "v" or mode == "V" or mode == "\\<C-v>" or mode == "\22" then
+		local anchor = { unpack(vim.fn.getpos("v"), 2, 3) }
+		local cursor = { unpack(vim.fn.getpos("."), 2, 3) }
+		local start_pos, end_pos
+		if anchor[1] > cursor[1] or (anchor[1] == cursor[1] and anchor[2] > cursor[2]) then
+			start_pos, end_pos = cursor, anchor
+		else
+			start_pos, end_pos = anchor, cursor
+		end
+		sel.start_line = start_pos[1]
+		sel.start_offset = vim.str_utfindex(vim.fn.getline(sel.start_line)) - start_pos[2]
+		sel.end_line = end_pos[1]
+		sel.end_offset = vim.str_utfindex(vim.fn.getline(sel.end_line)) - end_pos[2]
 		sel.visual_mode = mode
 	else
 		sel.start_line = vim.fn.line(".")
