@@ -693,17 +693,7 @@ H.change_line_bullet_level = function(direction, lnum)
 	end
 
 	if next(curr_line) == nil then
-		-- If the current line is not a bullet then don't do anything else.
-		-- TODO: feedkeys
-		local insert_mode = vim.fn.mode() == "i"
-
-		if insert_mode then
-			vim.cmd("startinsert!")
-		end
-
-		local keys = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
-		vim.api.nvim_feedkeys(keys, "n", true)
-
+		-- Not a bullet line; indent/outdent already applied above.
 		return
 	end
 

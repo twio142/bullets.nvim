@@ -163,4 +163,38 @@ describe("BulletPromoteVisual / BulletDemoteVisual", function()
             }, get_buf())
         end)
     end)
+
+    describe("Non-list lines", function()
+        it("BulletDemote indents a non-list line like >>", function()
+            vim.bo.filetype = "markdown"
+            set_buf({
+                "1. Item 1",
+                "Not a list item",
+                "2. Item 2",
+            })
+            vim.fn.cursor(2, 1)
+            vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<cmd>BulletDemote<CR>", true, false, true), "x", true)
+            eq({
+                "1. Item 1",
+                "    Not a list item",
+                "2. Item 2",
+            }, get_buf())
+        end)
+
+        it("BulletPromote outdents a non-list line like <<", function()
+            vim.bo.filetype = "markdown"
+            set_buf({
+                "1. Item 1",
+                "    Not a list item",
+                "2. Item 2",
+            })
+            vim.fn.cursor(2, 1)
+            vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<cmd>BulletPromote<CR>", true, false, true), "x", true)
+            eq({
+                "1. Item 1",
+                "Not a list item",
+                "2. Item 2",
+            }, get_buf())
+        end)
+    end)
 end)
